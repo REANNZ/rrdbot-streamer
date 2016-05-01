@@ -79,7 +79,7 @@ def cfg_parse_dir(rrdbot_conf_dir):
             logger.debug("Reading %s", filepath)
             config = RRDBotConfigFile(filepath)
             try:
-                with open(filepath) as config_file:
+                with open(filepath, "rb") as config_file:
                     cfg_parse_file(config_file, config)
                 configs.append(config)
             except EnvironmentError as ex:
@@ -122,7 +122,7 @@ def cfg_parse_file(config_file, config):
 
             # Continuations are separated by spaces
             # NB: config-parser.c does not handle this properly
-            value += " " + line.lstrip()
+            value += b" " + line.lstrip()
             continue
 
         # No continuation hand off value if necessary
@@ -132,12 +132,12 @@ def cfg_parse_file(config_file, config):
         name = value = None
 
         # Empty lines / comments at start / comments without continuation
-        if not line or line.startswith("#"):
+        if not line or line.startswith(b"#"):
             continue
 
         # A header
-        if line.startswith("["):
-            index = line.find("]", 1)
+        if line.startswith(b"["):
+            index = line.find(b"]", 1)
             if index == -1 or index == 1:
                 raise ConfigurationError(
                     "Invalid config header %s:%d : %s" % \
@@ -147,7 +147,7 @@ def cfg_parse_file(config_file, config):
             continue
 
         # Look for the break between name = value on the same line
-        match = re.search("[:=]", line)
+        match = re.search(b"[:=]", line)
         if match is None:
             raise ConfigurationError(
                 "Invalid config line %s:%d : %s" % \
@@ -169,7 +169,7 @@ def config_value(header, name, value, config):
 
     if header == CONFIG_GENERAL:
         if name == CONFIG_RAW:
-            config.raw_file_templates.add(value)
+            config.raw_file_templates.add(value.decode("latin-1"))
 
     elif header == CONFIG_POLL:
         if name == CONFIG_INTERVAL:
@@ -179,10 +179,10 @@ def config_value(header, name, value, config):
             return
 
         # Parse out suffix
-        if "." not in name:
+        if b"." not in name:
             return
 
-        name, suffix = name.split(".", 1)
+        name, suffix = name.split(b".", 1)
 
         # If it starts with "field.reference"
         if suffix == CONFIG_SOURCE:
@@ -203,10 +203,10 @@ def config_value(header, name, value, config):
             return
 
         # Try and see if the field has a suffix
-        if "." not in name:
+        if b"." not in name:
             return # Ignore unknown options
 
-        name, suffix = name.split(".", 1)
+        name, suffix = name.split(b".", 1)
 
         if name not in config.items:
             logger.warning("%s: Field %s not found", config.filepath, name)
